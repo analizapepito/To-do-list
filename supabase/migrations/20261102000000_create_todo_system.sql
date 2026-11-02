@@ -147,76 +147,76 @@ INSERT INTO public.categories (id, name, color, icon, description) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO public.task_lists (id, name, description, color, icon, target_date) VALUES
-  ('l1000000-0000-0000-0000-000000000001', 'Semester Project Sprints', 'Deliverables and milestone tracking for individual final project submission', '#6366f1', 'folder', CURRENT_DATE + INTERVAL '14 days'),
-  ('l1000000-0000-0000-0000-000000000002', 'Daily Routine & Focus', 'High-priority daily habits, urgent errands, and quick actions', '#3b82f6', 'sun', CURRENT_DATE + INTERVAL '1 day'),
-  ('l1000000-0000-0000-0000-000000000003', 'Health & Wellness Habits', 'Weekly exercise routines and lifestyle optimization', '#10b981', 'heart', CURRENT_DATE + INTERVAL '30 days')
+  ('d1000000-0000-0000-0000-000000000001', 'Semester Project Sprints', 'Deliverables and milestone tracking for individual final project submission', '#6366f1', 'folder', CURRENT_DATE + INTERVAL '14 days'),
+  ('d1000000-0000-0000-0000-000000000002', 'Daily Routine & Focus', 'High-priority daily habits, urgent errands, and quick actions', '#3b82f6', 'sun', CURRENT_DATE + INTERVAL '1 day'),
+  ('d1000000-0000-0000-0000-000000000003', 'Health & Wellness Habits', 'Weekly exercise routines and lifestyle optimization', '#10b981', 'heart', CURRENT_DATE + INTERVAL '30 days')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.tasks (id, title, description, status, priority, due_date, category_id, list_id, completed_at) VALUES
   (
-    't1000000-0000-0000-0000-000000000001',
+    'e1000000-0000-0000-0000-000000000001',
     'Submit Svelte + Supabase Project Milestone',
     'Review all CRUD operations, verify PostgreSQL schema migrations, and generate production documentation.',
     'In Progress',
     'Urgent',
     NOW() + INTERVAL '2 days',
     'c1000000-0000-0000-0000-000000000001',
-    'l1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000001',
     NULL
   ),
   (
-    't1000000-0000-0000-0000-000000000002',
+    'e1000000-0000-0000-0000-000000000002',
     'Complete Task Category Management Module',
     'Implement Category create, read, update, delete modal dialogs and color selectors.',
     'Completed',
     'High',
     NOW() - INTERVAL '1 day',
     'c1000000-0000-0000-0000-000000000001',
-    'l1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000001',
     NOW() - INTERVAL '6 hours'
   ),
   (
-    't1000000-0000-0000-0000-000000000003',
+    'e1000000-0000-0000-0000-000000000003',
     'Review Database Relations & Foreign Keys',
     'Ensure ON DELETE CASCADE for lists and ON DELETE SET NULL for categories works smoothly.',
     'Completed',
     'Medium',
     NOW() - INTERVAL '2 days',
     'c1000000-0000-0000-0000-000000000001',
-    'l1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000001',
     NOW() - INTERVAL '1 day'
   ),
   (
-    't1000000-0000-0000-0000-000000000004',
+    'e1000000-0000-0000-0000-000000000004',
     'Prepare Monthly Budget Report',
     'Reconcile bank accounts, track subscription renewals, and log project hosting receipts.',
     'Overdue',
     'High',
     NOW() - INTERVAL '3 days',
     'c1000000-0000-0000-0000-000000000005',
-    'l1000000-0000-0000-0000-000000000002',
+    'd1000000-0000-0000-0000-000000000002',
     NULL
   ),
   (
-    't1000000-0000-0000-0000-000000000005',
+    'e1000000-0000-0000-0000-000000000005',
     'Morning Cardio & Strength Training',
     '45-minute HIIT workout session followed by stretching and hydration tracking.',
     'Pending',
     'Medium',
     NOW() + INTERVAL '1 day',
     'c1000000-0000-0000-0000-000000000004',
-    'l1000000-0000-0000-0000-000000000003',
+    'd1000000-0000-0000-0000-000000000003',
     NULL
   ),
   (
-    't1000000-0000-0000-0000-000000000006',
+    'e1000000-0000-0000-0000-000000000006',
     'Configure Vercel Production Environment',
     'Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to Vercel deployment project settings.',
     'Pending',
     'Urgent',
     NOW() + INTERVAL '4 days',
     'c1000000-0000-0000-0000-000000000002',
-    'l1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000001',
     NULL
   )
 ON CONFLICT (id) DO NOTHING;

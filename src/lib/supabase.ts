@@ -73,7 +73,7 @@ const INITIAL_CATEGORIES: Category[] = [
 
 const INITIAL_LISTS: TaskList[] = [
   {
-    id: 'l1000000-0000-0000-0000-000000000001',
+    id: 'd1000000-0000-0000-0000-000000000001',
     name: 'Semester Project Sprints',
     description: 'Deliverables and milestone tracking for individual final project submission',
     color: '#6366f1',
@@ -84,7 +84,7 @@ const INITIAL_LISTS: TaskList[] = [
     updated_at: new Date().toISOString()
   },
   {
-    id: 'l1000000-0000-0000-0000-000000000002',
+    id: 'd1000000-0000-0000-0000-000000000002',
     name: 'Daily Routine & Focus',
     description: 'High-priority daily habits, urgent errands, and quick actions',
     color: '#3b82f6',
@@ -95,7 +95,7 @@ const INITIAL_LISTS: TaskList[] = [
     updated_at: new Date().toISOString()
   },
   {
-    id: 'l1000000-0000-0000-0000-000000000003',
+    id: 'd1000000-0000-0000-0000-000000000003',
     name: 'Health & Wellness Habits',
     description: 'Weekly exercise routines and lifestyle optimization',
     color: '#10b981',
@@ -109,76 +109,76 @@ const INITIAL_LISTS: TaskList[] = [
 
 const INITIAL_TASKS: Task[] = [
   {
-    id: 't1000000-0000-0000-0000-000000000001',
+    id: 'e1000000-0000-0000-0000-000000000001',
     title: 'Submit Svelte + Supabase Project Milestone',
     description: 'Review all CRUD operations, verify PostgreSQL schema migrations, and generate production documentation.',
     status: 'In Progress',
     priority: 'Urgent',
     due_date: new Date(Date.now() + 2 * 86400000).toISOString(),
     category_id: 'c1000000-0000-0000-0000-000000000001',
-    list_id: 'l1000000-0000-0000-0000-000000000001',
+    list_id: 'd1000000-0000-0000-0000-000000000001',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
   {
-    id: 't1000000-0000-0000-0000-000000000002',
+    id: 'e1000000-0000-0000-0000-000000000002',
     title: 'Complete Task Category Management Module',
     description: 'Implement Category create, read, update, delete modal dialogs and color selectors.',
     status: 'Completed',
     priority: 'High',
     due_date: new Date(Date.now() - 1 * 86400000).toISOString(),
     category_id: 'c1000000-0000-0000-0000-000000000001',
-    list_id: 'l1000000-0000-0000-0000-000000000001',
+    list_id: 'd1000000-0000-0000-0000-000000000001',
     completed_at: new Date(Date.now() - 6 * 3600000).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
   {
-    id: 't1000000-0000-0000-0000-000000000003',
+    id: 'e1000000-0000-0000-0000-000000000003',
     title: 'Review Database Relations & Foreign Keys',
     description: 'Ensure ON DELETE CASCADE for lists and ON DELETE SET NULL for categories works smoothly.',
     status: 'Completed',
     priority: 'Medium',
     due_date: new Date(Date.now() - 2 * 86400000).toISOString(),
     category_id: 'c1000000-0000-0000-0000-000000000001',
-    list_id: 'l1000000-0000-0000-0000-000000000001',
+    list_id: 'd1000000-0000-0000-0000-000000000001',
     completed_at: new Date(Date.now() - 24 * 3600000).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
   {
-    id: 't1000000-0000-0000-0000-000000000004',
+    id: 'e1000000-0000-0000-0000-000000000004',
     title: 'Prepare Monthly Budget Report',
     description: 'Reconcile bank accounts, track subscription renewals, and log project hosting receipts.',
     status: 'Overdue',
     priority: 'High',
     due_date: new Date(Date.now() - 3 * 86400000).toISOString(),
     category_id: 'c1000000-0000-0000-0000-000000000005',
-    list_id: 'l1000000-0000-0000-0000-000000000002',
+    list_id: 'd1000000-0000-0000-0000-000000000002',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
   {
-    id: 't1000000-0000-0000-0000-000000000005',
+    id: 'e1000000-0000-0000-0000-000000000005',
     title: 'Morning Cardio & Strength Training',
     description: '45-minute HIIT workout session followed by stretching and hydration tracking.',
     status: 'Pending',
     priority: 'Medium',
     due_date: new Date(Date.now() + 1 * 86400000).toISOString(),
     category_id: 'c1000000-0000-0000-0000-000000000004',
-    list_id: 'l1000000-0000-0000-0000-000000000003',
+    list_id: 'd1000000-0000-0000-0000-000000000003',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
   {
-    id: 't1000000-0000-0000-0000-000000000006',
+    id: 'e1000000-0000-0000-0000-000000000006',
     title: 'Configure Vercel Production Environment',
     description: 'Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to Vercel deployment project settings.',
     status: 'Pending',
     priority: 'Urgent',
     due_date: new Date(Date.now() + 4 * 86400000).toISOString(),
     category_id: 'c1000000-0000-0000-0000-000000000002',
-    list_id: 'l1000000-0000-0000-0000-000000000001',
+    list_id: 'd1000000-0000-0000-0000-000000000001',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
