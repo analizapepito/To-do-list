@@ -1,5 +1,27 @@
 <script lang="ts">
+  import {
+    Search,
+    Plus,
+    Trash2,
+    Edit3,
+    Check,
+    CheckSquare,
+    Clock,
+    RefreshCw,
+    CheckCircle2,
+    AlertCircle,
+    Calendar,
+    List,
+    Kanban,
+    LayoutGrid,
+    Layers,
+    Tag,
+    X,
+    SlidersHorizontal,
+    ArrowUpDown
+  } from '@lucide/svelte';
   import type { Task, Category, TaskList, TaskStatus, TaskPriority } from '../types';
+  import CategoryIcon from './CategoryIcon.svelte';
 
   interface Props {
     tasks: Task[];
@@ -77,7 +99,7 @@
       result = result.filter((t) => t.priority === selectedPriorityFilter);
     }
 
-    // Search Query (Title, Description, Category Name)
+    // Search Query (Title, Description, Category Name, List Name)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter((t) => {
@@ -142,187 +164,175 @@
       const days = Math.ceil(Math.abs(diffHours) / 24);
       return {
         label: `${days}d overdue`,
-        className: 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold'
+        className: 'bg-rose-50 text-rose-700 border border-rose-200/80 font-bold'
       };
     } else if (diffHours < 24) {
       return {
         label: `${Math.round(diffHours)}h left`,
-        className: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-medium'
+        className: 'bg-amber-50 text-amber-700 border border-amber-200/80 font-medium'
       };
     } else {
       const days = Math.round(diffHours / 24);
       return {
         label: `in ${days}d`,
-        className: 'bg-slate-800 text-slate-300 border border-slate-700'
+        className: 'bg-slate-100 text-slate-600 border border-slate-200'
       };
+    }
+  }
+
+  function getPriorityColor(p: TaskPriority) {
+    switch (p) {
+      case 'Urgent':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'High':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'Medium':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Low':
+        return 'bg-slate-100 text-slate-600 border-slate-200';
     }
   }
 </script>
 
-<div class="space-y-6 animate-in fade-in">
-  <!-- Header Bar -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div>
-      <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-        <span>Task Management</span>
-        <span class="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
-          {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
-        </span>
-      </h2>
-      <p class="text-xs sm:text-sm text-slate-400 mt-1">
-        Full CRUD operations, status workflows, priorities, due dates, and organization filters.
-      </p>
-    </div>
+<div class="space-y-6">
+  <!-- Top Section: Header & Action Bar -->
+  <div class="glass-panel p-6 rounded-3xl space-y-5 border border-white/80 shadow-xs">
+    <!-- Row 1: Title + Contextual Add Task Button -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+          <span>Task Management</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 font-bold">
+            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+          </span>
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Full CRUD workflows with clean filters, priorities, and organized task lists.
+        </p>
+      </div>
 
-    <div class="flex items-center gap-2.5">
-      {#if tasks.some((t) => t.status === 'Completed')}
+      <!-- Action Group: Batch Delete + Prominent Add Task Button Next to Lists -->
+      <div class="flex items-center gap-2.5">
+        {#if tasks.some((t) => t.status === 'Completed')}
+          <button
+            onclick={onBatchDeleteCompleted}
+            class="px-3 py-2 rounded-xl border border-rose-200/80 bg-rose-50/70 hover:bg-rose-100/80 text-xs font-semibold text-rose-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Clear all completed tasks"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+            <span class="hidden md:inline">Clear Completed</span>
+          </button>
+        {/if}
+
+        <!-- Primary Add Task Button placed directly next to the list selection -->
         <button
-          onclick={onBatchDeleteCompleted}
-          class="px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-          title="Clear all completed tasks"
+          onclick={() => onOpenNewTaskModal({ listId: selectedListFilter || undefined, categoryId: selectedCategoryFilter || undefined })}
+          class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs tracking-wide shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer group"
         >
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-          Clear Completed
+          <Plus class="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
+          <span>Add Task</span>
         </button>
-      {/if}
-
-      <button
-        onclick={() => onOpenNewTaskModal({ listId: selectedListFilter || undefined, categoryId: selectedCategoryFilter || undefined })}
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-900/30 flex items-center gap-1.5 cursor-pointer"
-      >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-        </svg>
-        New Task
-      </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Filter & Search Controls Bar -->
-  <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-4 backdrop-blur-md">
-    <!-- Top Row: Search input + View mode toggle -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <!-- Search Input -->
+    <!-- Row 2: Search Input & View Switchers -->
+    <div class="flex flex-col md:flex-row gap-3 pt-2">
+      <!-- Search Bar -->
       <div class="relative flex-1">
-        <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           bind:value={searchQuery}
           placeholder="Search tasks by title, description, category, or list..."
-          class="w-full pl-10 pr-4 py-2 bg-slate-950/60 border border-slate-800 rounded-xl text-white text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-500/10 transition-all shadow-2xs"
         />
         {#if searchQuery}
           <button
             onclick={() => searchQuery = ''}
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            aria-label="Clear search"
           >
-            &times;
+            <X class="w-3.5 h-3.5" />
           </button>
         {/if}
       </div>
 
-      <!-- View Mode Buttons -->
-      <div class="flex items-center gap-1 p-1 bg-slate-950/60 border border-slate-800 rounded-xl self-start md:self-auto">
+      <!-- View Switcher (List, Kanban, Grid) -->
+      <div class="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60 self-start md:self-auto">
         <button
           onclick={() => viewMode = 'list'}
-          class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
-          {viewMode === 'list' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}"
+          class="p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer {viewMode === 'list' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'}"
           title="List View"
         >
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          List
+          <List class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">List</span>
         </button>
-
         <button
           onclick={() => viewMode = 'kanban'}
-          class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
-          {viewMode === 'kanban' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}"
+          class="p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer {viewMode === 'kanban' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'}"
           title="Kanban Board View"
         >
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-          </svg>
-          Kanban
+          <Kanban class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Kanban</span>
         </button>
-
         <button
           onclick={() => viewMode = 'grid'}
-          class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
-          {viewMode === 'grid' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}"
+          class="p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer {viewMode === 'grid' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'}"
           title="Grid Card View"
         >
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
-          Grid
+          <LayoutGrid class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Grid</span>
         </button>
       </div>
     </div>
 
-    <!-- Middle Row: Status Tabs -->
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-800/80">
-      {#each STATUS_TABS as tab}
-        {@const count = tab.id === 'All' ? tasks.length : tasks.filter((t) => t.status === tab.id).length}
-        <button
-          onclick={() => currentStatusTab = tab.id}
-          class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2
-          {currentStatusTab === tab.id
-            ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}"
-        >
-          <span>{tab.label}</span>
-          <span class="text-[10px] px-1.5 py-0.2 rounded-full {currentStatusTab === tab.id ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'} font-mono">
-            {count}
-          </span>
-        </button>
-      {/each}
-    </div>
+    <!-- Row 3: Status Filter Pills + Dropdown Filters -->
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pt-1 border-t border-slate-100">
+      <!-- Status Tabs -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        {#each STATUS_TABS as tab (tab.id)}
+          {@const count = tab.id === 'All' ? tasks.length : tasks.filter((t) => t.status === tab.id).length}
+          <button
+            onclick={() => currentStatusTab = tab.id}
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer {currentStatusTab === tab.id ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/70'}"
+          >
+            <span>{tab.label}</span>
+            <span class="ml-1 text-[10px] opacity-80">({count})</span>
+          </button>
+        {/each}
+      </div>
 
-    <!-- Bottom Row: Multi-Dropdown Filters (Category, List, Priority, Sort) -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-      <!-- Category Filter -->
-      <div>
-        <label for="filter-category" class="block text-slate-400 text-[11px] mb-1 font-medium">Category</label>
+      <!-- Dropdown Selectors: Task List, Category, Priority, Sort -->
+      <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+        <!-- List Filter -->
         <select
-          id="filter-category"
+          bind:value={selectedListFilter}
+          aria-label="Filter by task list"
+          class="px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
+        >
+          <option value={null}>All Task Lists</option>
+          {#each taskLists as list (list.id)}
+            <option value={list.id}>{list.name}</option>
+          {/each}
+        </select>
+
+        <!-- Category Filter -->
+        <select
           bind:value={selectedCategoryFilter}
-          class="w-full px-2.5 py-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          aria-label="Filter by category"
+          class="px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
         >
           <option value={null}>All Categories</option>
-          {#each categories as cat}
+          {#each categories as cat (cat.id)}
             <option value={cat.id}>{cat.name}</option>
           {/each}
         </select>
-      </div>
 
-      <!-- Task List Filter -->
-      <div>
-        <label for="filter-list" class="block text-slate-400 text-[11px] mb-1 font-medium">Task List</label>
+        <!-- Priority Filter -->
         <select
-          id="filter-list"
-          bind:value={selectedListFilter}
-          class="w-full px-2.5 py-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value={null}>All Task Lists</option>
-          {#each taskLists as lst}
-            <option value={lst.id}>{lst.name}</option>
-          {/each}
-        </select>
-      </div>
-
-      <!-- Priority Filter -->
-      <div>
-        <label for="filter-priority" class="block text-slate-400 text-[11px] mb-1 font-medium">Priority</label>
-        <select
-          id="filter-priority"
           bind:value={selectedPriorityFilter}
-          class="w-full px-2.5 py-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          aria-label="Filter by priority"
+          class="px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
         >
           <option value="All">All Priorities</option>
           <option value="Urgent">Urgent</option>
@@ -330,524 +340,421 @@
           <option value="Medium">Medium</option>
           <option value="Low">Low</option>
         </select>
-      </div>
 
-      <!-- Sort By -->
-      <div>
-        <label for="sort-by" class="block text-slate-400 text-[11px] mb-1 font-medium">Sort By</label>
+        <!-- Sort Filter -->
         <select
-          id="sort-by"
           bind:value={sortBy}
-          class="w-full px-2.5 py-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          aria-label="Sort tasks by"
+          class="px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
         >
-          <option value="due_date">Due Date (Soonest)</option>
-          <option value="priority">Priority (Highest)</option>
-          <option value="created_at">Created (Newest)</option>
+          <option value="due_date">Due Date</option>
+          <option value="priority">Priority</option>
+          <option value="created_at">Newest</option>
           <option value="title">Title (A-Z)</option>
         </select>
       </div>
     </div>
-
-    <!-- Active filter chips if any are selected -->
-    {#if selectedCategoryFilter || selectedListFilter || selectedPriorityFilter !== 'All' || searchQuery}
-      <div class="pt-2 border-t border-slate-800/60 flex flex-wrap items-center gap-2 text-xs">
-        <span class="text-slate-500">Active filters:</span>
-
-        {#if selectedCategoryFilter}
-          {@const cat = categories.find((c) => c.id === selectedCategoryFilter)}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
-            Category: {cat ? cat.name : 'Selected'}
-            <button onclick={() => selectedCategoryFilter = null} class="hover:text-white">&times;</button>
-          </span>
-        {/if}
-
-        {#if selectedListFilter}
-          {@const lst = taskLists.find((l) => l.id === selectedListFilter)}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-            List: {lst ? lst.name : 'Selected'}
-            <button onclick={() => selectedListFilter = null} class="hover:text-white">&times;</button>
-          </span>
-        {/if}
-
-        {#if selectedPriorityFilter !== 'All'}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-            Priority: {selectedPriorityFilter}
-            <button onclick={() => selectedPriorityFilter = 'All'} class="hover:text-white">&times;</button>
-          </span>
-        {/if}
-
-        <button
-          onclick={() => {
-            selectedCategoryFilter = null;
-            selectedListFilter = null;
-            selectedPriorityFilter = 'All';
-            searchQuery = '';
-          }}
-          class="text-xs text-rose-400 hover:underline ml-2"
-        >
-          Reset All Filters
-        </button>
-      </div>
-    {/if}
   </div>
 
-  <!-- Content: View Mode 1 - LIST VIEW -->
-  {#if viewMode === 'list'}
-    {#if filteredTasks.length === 0}
-      <div class="p-12 text-center bg-slate-900/50 border border-slate-800 rounded-2xl">
-        <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-        <h3 class="text-base font-semibold text-slate-300">No tasks found</h3>
-        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-          No tasks match your selected status, search, or filters. Try adjusting filters or create a new task.
-        </p>
-        <button
-          onclick={() => onOpenNewTaskModal({ listId: selectedListFilter || undefined, categoryId: selectedCategoryFilter || undefined })}
-          class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-colors shadow-md shadow-blue-900/20"
+  <!-- Content Rendering: List, Kanban, or Grid View -->
+  {#if filteredTasks.length === 0}
+    <div class="glass-panel rounded-3xl p-12 text-center space-y-3">
+      <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+        <CheckSquare class="w-6 h-6 stroke-[1.8]" />
+      </div>
+      <h3 class="text-base font-bold text-slate-800">No tasks found</h3>
+      <p class="text-xs text-slate-500 max-w-sm mx-auto">
+        {#if searchQuery || selectedCategoryFilter || selectedListFilter || currentStatusTab !== 'All'}
+          No tasks match your active filters or search terms. Try clearing your filters or create a new task.
+        {:else}
+          Your workspace is clean. Create your first task to get started!
+        {/if}
+      </p>
+      <button
+        onclick={() => onOpenNewTaskModal({ listId: selectedListFilter || undefined, categoryId: selectedCategoryFilter || undefined })}
+        class="mt-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs tracking-wide shadow-sm inline-flex items-center gap-1.5 cursor-pointer"
+      >
+        <Plus class="w-4 h-4" />
+        <span>Create First Task</span>
+      </button>
+    </div>
+  {:else if viewMode === 'list'}
+    <!-- LIST VIEW -->
+    <div class="space-y-2.5">
+      {#each filteredTasks as task (task.id)}
+        {@const dueBadge = getDueBadge(task.due_date, task.status)}
+        <div
+          class="glass-card rounded-2xl p-4 border border-slate-200/70 hover:border-blue-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
         >
-          + Create Task
-        </button>
-      </div>
-    {:else}
-      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden backdrop-blur-sm divide-y divide-slate-800/80">
-        {#each filteredTasks as task (task.id)}
-          {@const dueBadge = getDueBadge(task.due_date, task.status)}
-          <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors group">
-            <div class="flex items-start gap-3.5 min-w-0 flex-1">
-              <!-- Completion Checkbox -->
-              <button
-                onclick={() => onToggleTaskStatus(task)}
-                class="mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center transition-all shrink-0 cursor-pointer
-                {task.status === 'Completed'
-                  ? 'bg-emerald-600 border-emerald-500 text-white shadow-sm'
-                  : 'border-slate-600 hover:border-blue-400 bg-slate-950/60'}"
-                title={task.status === 'Completed' ? 'Mark uncompleted' : 'Mark completed'}
-              >
-                {#if task.status === 'Completed'}
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                  </svg>
+          <!-- Left: Checkbox + Title + Description -->
+          <div class="flex items-start gap-3.5 flex-1 min-w-0">
+            <!-- Checkbox Toggle -->
+            <button
+              onclick={() => onToggleTaskStatus(task)}
+              class="mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center transition-all cursor-pointer {task.status === 'Completed' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-blue-500 bg-white'}"
+              title={task.status === 'Completed' ? 'Mark as incomplete' : 'Mark as completed'}
+              aria-label={task.status === 'Completed' ? 'Mark as incomplete' : 'Mark as completed'}
+            >
+              {#if task.status === 'Completed'}
+                <Check class="w-3.5 h-3.5 stroke-[3]" />
+              {/if}
+            </button>
+
+            <!-- Text & Metadata -->
+            <div class="flex-1 min-w-0 cursor-pointer" onclick={() => onSelectTask(task)}>
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                <h4 class="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate {task.status === 'Completed' ? 'line-through text-slate-400' : ''}">
+                  {task.title}
+                </h4>
+
+                <!-- Priority Badge -->
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider border {getPriorityColor(task.priority)}">
+                  {task.priority}
+                </span>
+
+                <!-- Due Date Badge -->
+                {#if dueBadge}
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold {dueBadge.className}">
+                    {dueBadge.label}
+                  </span>
                 {/if}
-              </button>
-
-              <!-- Title, Description & Tags -->
-              <div class="min-w-0 flex-1">
-                <button
-                  onclick={() => onSelectTask(task)}
-                  class="text-left group-hover:text-blue-300 transition-colors block w-full"
-                >
-                  <div class="text-sm font-semibold text-slate-100 {task.status === 'Completed' ? 'line-through text-slate-400 font-normal' : ''}">
-                    {task.title}
-                  </div>
-                  {#if task.description}
-                    <div class="text-xs text-slate-400 line-clamp-1 mt-0.5 font-normal">
-                      {task.description}
-                    </div>
-                  {/if}
-                </button>
-
-                <!-- Metadata Row (Category, List, Due Date) -->
-                <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">
-                  <!-- Category Badge -->
-                  {#if task.category}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800/90 border border-slate-700/60 text-[11px] text-slate-300">
-                      <span class="w-2 h-2 rounded-full" style="background-color: {task.category.color};"></span>
-                      <span>{task.category.name}</span>
-                    </span>
-                  {/if}
-
-                  <!-- List Badge -->
-                  {#if task.task_list}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800/90 border border-slate-700/60 text-[11px] text-slate-300">
-                      <span class="w-2 h-2 rounded-full" style="background-color: {task.task_list.color};"></span>
-                      <span>{task.task_list.name}</span>
-                    </span>
-                  {/if}
-
-                  <!-- Due Date Badge -->
-                  {#if task.due_date}
-                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                      <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span>{formatDisplayDate(task.due_date)}</span>
-                    </span>
-                  {/if}
-
-                  {#if dueBadge}
-                    <span class="text-[10px] px-2 py-0.5 rounded-full {dueBadge.className}">
-                      {dueBadge.label}
-                    </span>
-                  {/if}
-                </div>
               </div>
-            </div>
 
-            <!-- Right Controls: Status Dropdown, Priority Badge, Edit/Delete Buttons -->
-            <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-800">
-              <!-- Quick Status Selector -->
-              <select
-                value={task.status}
-                onchange={(e) => onUpdateTaskStatus(task, (e.target as HTMLSelectElement).value as TaskStatus)}
-                class="px-2 py-1 bg-slate-950/80 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-              >
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-                <option value="Overdue">Overdue</option>
-              </select>
+              {#if task.description}
+                <p class="text-xs text-slate-500 line-clamp-1 mb-2">
+                  {task.description}
+                </p>
+              {/if}
 
-              <!-- Priority Badge -->
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg
-                {task.priority === 'Urgent' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : ''}
-                {task.priority === 'High' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : ''}
-                {task.priority === 'Medium' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : ''}
-                {task.priority === 'Low' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : ''}"
-              >
-                {task.priority}
-              </span>
+              <!-- Tags / Relational Pills -->
+              <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                {#if task.category}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200/60">
+                    <span class="w-1.5 h-1.5 rounded-full" style="background-color: {task.category.color};"></span>
+                    <CategoryIcon name={task.category.icon} class="w-3 h-3" />
+                    <span>{task.category.name}</span>
+                  </span>
+                {/if}
 
-              <!-- Action Menu: Edit & Delete -->
-              <div class="flex items-center gap-1">
-                <button
-                  onclick={() => onEditTask(task)}
-                  class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/60 rounded-lg transition-colors cursor-pointer"
-                  title="Edit task"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-                <button
-                  onclick={() => onDeleteTask(task)}
-                  class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                  title="Delete task"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                {#if task.task_list}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium border border-blue-200/60">
+                    <Layers class="w-3 h-3" />
+                    <span>{task.task_list.name}</span>
+                  </span>
+                {/if}
+
+                {#if task.due_date}
+                  <span class="inline-flex items-center gap-1 text-slate-400">
+                    <Calendar class="w-3 h-3" />
+                    <span>{formatDisplayDate(task.due_date)}</span>
+                  </span>
+                {/if}
               </div>
             </div>
           </div>
-        {/each}
-      </div>
-    {/if}
 
-  <!-- Content: View Mode 2 - KANBAN BOARD VIEW -->
+          <!-- Right: Status Dropdown & Action Controls -->
+          <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <!-- Inline Status Selector -->
+            <select
+              value={task.status}
+              onchange={(e) => onUpdateTaskStatus(task, (e.target as HTMLSelectElement).value as TaskStatus)}
+              aria-label="Update task status"
+              class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer {task.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : task.status === 'Overdue' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-700 border-amber-200'}"
+            >
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+
+            <!-- Edit Button -->
+            <button
+              onclick={() => onEditTask(task)}
+              class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              title="Edit task"
+              aria-label="Edit task"
+            >
+              <Edit3 class="w-4 h-4" />
+            </button>
+
+            <!-- Delete Button -->
+            <button
+              onclick={() => onDeleteTask(task)}
+              class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="Delete task"
+              aria-label="Delete task"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      {/each}
+    </div>
   {:else if viewMode === 'kanban'}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <!-- Column 1: Pending -->
-      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-[450px]">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-            <span class="font-bold text-sm text-slate-200">Pending</span>
+    <!-- KANBAN BOARD VIEW (4 Distinct Columns) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+      <!-- 1. Pending Column -->
+      <div class="glass-panel p-4 rounded-3xl space-y-3 border-amber-200/60 bg-amber-50/20">
+        <div class="flex items-center justify-between pb-2 border-b border-amber-100">
+          <div class="flex items-center gap-2 text-amber-700 font-extrabold text-xs uppercase tracking-wider">
+            <Clock class="w-4 h-4" />
+            <span>Pending</span>
+            <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px]">
+              {kanbanPending.length}
+            </span>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
-            {kanbanPending.length}
-          </span>
+          <button
+            onclick={() => onOpenNewTaskModal({ listId: selectedListFilter || undefined, categoryId: selectedCategoryFilter || undefined })}
+            class="p-1 rounded-lg text-amber-600 hover:bg-amber-100 transition-colors"
+            title="Add pending task"
+            aria-label="Add pending task"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
         </div>
 
-        <div class="mt-3 space-y-3 flex-1 overflow-y-auto">
+        <div class="space-y-2.5">
           {#each kanbanPending as task (task.id)}
-            <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl hover:border-slate-700 transition-all shadow-sm group">
-              <button onclick={() => onSelectTask(task)} class="text-left w-full">
-                <div class="text-xs font-bold text-slate-200 group-hover:text-blue-300">
-                  {task.title}
-                </div>
-                {#if task.description}
-                  <div class="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                    {task.description}
-                  </div>
-                {/if}
-              </button>
-
-              <div class="mt-3 flex items-center justify-between text-[10px]">
-                <span class="px-1.5 py-0.5 rounded font-bold uppercase
-                  {task.priority === 'Urgent' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-800 text-slate-300'}"
-                >
+            <div class="glass-card p-3.5 rounded-2xl border border-slate-200/70 space-y-2 cursor-pointer hover:border-amber-300" onclick={() => onSelectTask(task)}>
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="text-xs font-bold text-slate-800 line-clamp-2">{task.title}</h4>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border {getPriorityColor(task.priority)}">
                   {task.priority}
                 </span>
-
-                <div class="flex items-center gap-1">
-                  <button
-                    onclick={() => onUpdateTaskStatus(task, 'In Progress')}
-                    class="px-2 py-0.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded"
-                    title="Move to In Progress"
-                  >
-                    Start &rarr;
-                  </button>
-                  <button
-                    onclick={() => onEditTask(task)}
-                    class="p-1 text-slate-400 hover:text-white"
-                    title="Edit task"
-                    aria-label="Edit task"
-                  >
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                </div>
+              </div>
+              {#if task.description}
+                <p class="text-[11px] text-slate-500 line-clamp-2">{task.description}</p>
+              {/if}
+              <div class="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+                <span>{task.category?.name || 'General'}</span>
+                <button
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onUpdateTaskStatus(task, 'In Progress');
+                  }}
+                  class="text-blue-600 hover:underline font-bold"
+                >
+                  Start →
+                </button>
               </div>
             </div>
           {/each}
         </div>
       </div>
 
-      <!-- Column 2: In Progress -->
-      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-[450px]">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-            <span class="font-bold text-sm text-blue-300">In Progress</span>
+      <!-- 2. In Progress Column -->
+      <div class="glass-panel p-4 rounded-3xl space-y-3 border-blue-200/60 bg-blue-50/20">
+        <div class="flex items-center justify-between pb-2 border-b border-blue-100">
+          <div class="flex items-center gap-2 text-blue-700 font-extrabold text-xs uppercase tracking-wider">
+            <RefreshCw class="w-4 h-4" />
+            <span>In Progress</span>
+            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px]">
+              {kanbanInProgress.length}
+            </span>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono">
-            {kanbanInProgress.length}
-          </span>
+          <button
+            onclick={() => onOpenNewTaskModal({ listId: selectedListFilter || undefined, categoryId: selectedCategoryFilter || undefined })}
+            class="p-1 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
+            title="Add active task"
+            aria-label="Add active task"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
         </div>
 
-        <div class="mt-3 space-y-3 flex-1 overflow-y-auto">
+        <div class="space-y-2.5">
           {#each kanbanInProgress as task (task.id)}
-            <div class="p-3 bg-slate-950/80 border border-blue-900/40 rounded-xl hover:border-blue-700 transition-all shadow-sm group">
-              <button onclick={() => onSelectTask(task)} class="text-left w-full">
-                <div class="text-xs font-bold text-slate-200 group-hover:text-blue-300">
-                  {task.title}
-                </div>
-                {#if task.description}
-                  <div class="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                    {task.description}
-                  </div>
-                {/if}
-              </button>
-
-              <div class="mt-3 flex items-center justify-between text-[10px]">
-                <span class="px-1.5 py-0.5 rounded font-bold uppercase
-                  {task.priority === 'Urgent' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-800 text-slate-300'}"
-                >
+            <div class="glass-card p-3.5 rounded-2xl border border-slate-200/70 space-y-2 cursor-pointer hover:border-blue-300" onclick={() => onSelectTask(task)}>
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="text-xs font-bold text-slate-800 line-clamp-2">{task.title}</h4>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border {getPriorityColor(task.priority)}">
                   {task.priority}
                 </span>
-
-                <div class="flex items-center gap-1">
-                  <button
-                    onclick={() => onUpdateTaskStatus(task, 'Completed')}
-                    class="px-2 py-0.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded"
-                    title="Complete task"
-                  >
-                    Done &check;
-                  </button>
-                  <button
-                    onclick={() => onEditTask(task)}
-                    class="p-1 text-slate-400 hover:text-white"
-                    title="Edit task"
-                    aria-label="Edit task"
-                  >
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                </div>
+              </div>
+              {#if task.description}
+                <p class="text-[11px] text-slate-500 line-clamp-2">{task.description}</p>
+              {/if}
+              <div class="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+                <span>{task.category?.name || 'General'}</span>
+                <button
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onUpdateTaskStatus(task, 'Completed');
+                  }}
+                  class="text-emerald-600 hover:underline font-bold"
+                >
+                  Done ✓
+                </button>
               </div>
             </div>
           {/each}
         </div>
       </div>
 
-      <!-- Column 3: Completed -->
-      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-[450px]">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <span class="font-bold text-sm text-emerald-300">Completed</span>
+      <!-- 3. Completed Column -->
+      <div class="glass-panel p-4 rounded-3xl space-y-3 border-emerald-200/60 bg-emerald-50/20">
+        <div class="flex items-center justify-between pb-2 border-b border-emerald-100">
+          <div class="flex items-center gap-2 text-emerald-700 font-extrabold text-xs uppercase tracking-wider">
+            <CheckCircle2 class="w-4 h-4" />
+            <span>Completed</span>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">
+              {kanbanCompleted.length}
+            </span>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
-            {kanbanCompleted.length}
-          </span>
         </div>
 
-        <div class="mt-3 space-y-3 flex-1 overflow-y-auto">
+        <div class="space-y-2.5">
           {#each kanbanCompleted as task (task.id)}
-            <div class="p-3 bg-slate-950/80 border border-emerald-900/30 rounded-xl hover:border-emerald-700 transition-all opacity-85 group">
-              <button onclick={() => onSelectTask(task)} class="text-left w-full">
-                <div class="text-xs font-semibold text-slate-300 line-through">
-                  {task.title}
-                </div>
-              </button>
-
-              <div class="mt-3 flex items-center justify-between text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-medium">
+            <div class="glass-card p-3.5 rounded-2xl border border-slate-200/70 space-y-2 cursor-pointer hover:border-emerald-300 opacity-80" onclick={() => onSelectTask(task)}>
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="text-xs font-bold text-slate-600 line-through line-clamp-2">{task.title}</h4>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   Done
                 </span>
-
-                <div class="flex items-center gap-1">
-                  <button
-                    onclick={() => onUpdateTaskStatus(task, 'Pending')}
-                    class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
-                    title="Reopen task"
-                  >
-                    Reopen
-                  </button>
-                  <button
-                    onclick={() => onDeleteTask(task)}
-                    class="p-1 text-slate-400 hover:text-rose-400"
-                    title="Delete task"
-                    aria-label="Delete task"
-                  >
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+              </div>
+              <div class="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+                <span>{task.category?.name || 'General'}</span>
+                <button
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onUpdateTaskStatus(task, 'Pending');
+                  }}
+                  class="text-slate-500 hover:underline font-bold"
+                >
+                  Undo
+                </button>
               </div>
             </div>
           {/each}
         </div>
       </div>
 
-      <!-- Column 4: Overdue -->
-      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-[450px]">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-            <span class="font-bold text-sm text-rose-300">Overdue</span>
+      <!-- 4. Overdue Column -->
+      <div class="glass-panel p-4 rounded-3xl space-y-3 border-rose-200/60 bg-rose-50/20">
+        <div class="flex items-center justify-between pb-2 border-b border-rose-100">
+          <div class="flex items-center gap-2 text-rose-700 font-extrabold text-xs uppercase tracking-wider">
+            <AlertCircle class="w-4 h-4" />
+            <span>Overdue</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px]">
+              {kanbanOverdue.length}
+            </span>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">
-            {kanbanOverdue.length}
-          </span>
         </div>
 
-        <div class="mt-3 space-y-3 flex-1 overflow-y-auto">
+        <div class="space-y-2.5">
           {#each kanbanOverdue as task (task.id)}
-            <div class="p-3 bg-rose-950/20 border border-rose-900/40 rounded-xl hover:border-rose-700 transition-all shadow-sm group">
-              <button onclick={() => onSelectTask(task)} class="text-left w-full">
-                <div class="text-xs font-bold text-rose-200 group-hover:text-rose-100">
-                  {task.title}
-                </div>
-                {#if task.due_date}
-                  <div class="text-[10px] text-rose-400 font-semibold mt-1">
-                    {formatDisplayDate(task.due_date)}
-                  </div>
-                {/if}
-              </button>
-
-              <div class="mt-3 flex items-center justify-between text-[10px]">
+            <div class="glass-card p-3.5 rounded-2xl border border-rose-200 space-y-2 cursor-pointer hover:border-rose-400 bg-rose-50/40" onclick={() => onSelectTask(task)}>
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="text-xs font-bold text-rose-900 line-clamp-2">{task.title}</h4>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border {getPriorityColor(task.priority)}">
+                  {task.priority}
+                </span>
+              </div>
+              {#if task.description}
+                <p class="text-[11px] text-slate-600 line-clamp-2">{task.description}</p>
+              {/if}
+              <div class="flex items-center justify-between pt-1 text-[10px] text-rose-600 font-bold">
+                <span>{task.due_date ? formatDisplayDate(task.due_date) : 'Overdue'}</span>
                 <button
-                  onclick={() => onUpdateTaskStatus(task, 'Completed')}
-                  class="px-2 py-0.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onUpdateTaskStatus(task, 'Completed');
+                  }}
+                  class="text-emerald-700 hover:underline"
                 >
-                  Mark Done &check;
+                  Resolve ✓
                 </button>
-
-                <div class="flex items-center gap-1">
-                  <button
-                    onclick={() => onEditTask(task)}
-                    class="p-1 text-slate-400 hover:text-white"
-                    title="Edit task"
-                    aria-label="Edit task"
-                  >
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                  <button
-                    onclick={() => onDeleteTask(task)}
-                    class="p-1 text-rose-400 hover:text-rose-300"
-                    title="Delete task"
-                    aria-label="Delete task"
-                  >
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
               </div>
             </div>
           {/each}
         </div>
       </div>
     </div>
-
-  <!-- Content: View Mode 3 - GRID CARDS VIEW -->
   {:else if viewMode === 'grid'}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- GRID CARD VIEW -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {#each filteredTasks as task (task.id)}
         {@const dueBadge = getDueBadge(task.due_date, task.status)}
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all flex flex-col justify-between shadow-sm">
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-3">
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
-                {task.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : ''}
-                {task.status === 'In Progress' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : ''}
-                {task.status === 'Pending' ? 'bg-slate-800 text-slate-300 border border-slate-700' : ''}
-                {task.status === 'Overdue' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : ''}"
-              >
-                {task.status}
-              </span>
-
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
-                {task.priority === 'Urgent' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-800 text-slate-300'}"
-              >
+        <div class="glass-card p-5 rounded-3xl border border-slate-200/70 hover:border-blue-300 transition-all flex flex-col justify-between space-y-4">
+          <div class="space-y-2.5">
+            <!-- Top Card Header: Priority & Status Pill -->
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider border {getPriorityColor(task.priority)}">
                 {task.priority}
               </span>
+
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {task.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : task.status === 'Overdue' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
+                {task.status}
+              </span>
             </div>
 
-            <button onclick={() => onSelectTask(task)} class="text-left w-full">
-              <h3 class="font-bold text-sm text-slate-100 hover:text-blue-300 line-clamp-2 {task.status === 'Completed' ? 'line-through text-slate-400' : ''}">
-                {task.title}
-              </h3>
-              {#if task.description}
-                <p class="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">
-                  {task.description}
-                </p>
-              {/if}
-            </button>
+            <!-- Title & Description -->
+            <h4
+              onclick={() => onSelectTask(task)}
+              class="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer {task.status === 'Completed' ? 'line-through text-slate-400' : ''}"
+            >
+              {task.title}
+            </h4>
+
+            {#if task.description}
+              <p class="text-xs text-slate-500 line-clamp-3">
+                {task.description}
+              </p>
+            {/if}
           </div>
 
-          <div class="mt-4 pt-4 border-t border-slate-800/80 space-y-3">
-            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+          <!-- Bottom Card Footer: Tags & Actions -->
+          <div class="space-y-3 pt-3 border-t border-slate-100">
+            <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
               {#if task.category}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800/80 text-[11px] text-slate-300">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
                   <span class="w-1.5 h-1.5 rounded-full" style="background-color: {task.category.color};"></span>
-                  {task.category.name}
+                  <span>{task.category.name}</span>
                 </span>
               {/if}
-              {#if dueBadge}
-                <span class="text-[10px] px-1.5 py-0.5 rounded-full {dueBadge.className}">
-                  {dueBadge.label}
+              {#if task.task_list}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium">
+                  <Layers class="w-3 h-3" />
+                  <span>{task.task_list.name}</span>
                 </span>
               {/if}
             </div>
 
-            <div class="flex items-center justify-between pt-1">
-              <button
-                onclick={() => onToggleTaskStatus(task)}
-                class="text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors
-                {task.status === 'Completed' 
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20' 
-                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'}"
-              >
-                {task.status === 'Completed' ? 'Undo' : 'Mark Done'}
-              </button>
+            <div class="flex items-center justify-between text-xs pt-1">
+              {#if dueBadge}
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md {dueBadge.className}">
+                  {dueBadge.label}
+                </span>
+              {:else if task.due_date}
+                <span class="text-[10px] text-slate-400">
+                  {formatDisplayDate(task.due_date)}
+                </span>
+              {:else}
+                <span></span>
+              {/if}
 
               <div class="flex items-center gap-1">
                 <button
+                  onclick={() => onToggleTaskStatus(task)}
+                  class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
+                  title="Toggle status"
+                >
+                  <Check class="w-3.5 h-3.5" />
+                </button>
+                <button
                   onclick={() => onEditTask(task)}
-                  class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
                   title="Edit task"
                 >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+                  <Edit3 class="w-3.5 h-3.5" />
                 </button>
                 <button
                   onclick={() => onDeleteTask(task)}
-                  class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
+                  class="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
                   title="Delete task"
                 >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  <Trash2 class="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

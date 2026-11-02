@@ -1,4 +1,10 @@
 <script lang="ts">
+  import {
+    Layers,
+    X,
+    AlertCircle,
+    Check
+  } from '@lucide/svelte';
   import type { TaskList } from '../types';
 
   interface Props {
@@ -28,15 +34,6 @@
     { name: 'Cyan', value: '#06b6d4' }
   ];
 
-  const ICON_PRESETS = [
-    { id: 'folder', label: 'Folder' },
-    { id: 'sun', label: 'Daily' },
-    { id: 'heart', label: 'Habits' },
-    { id: 'check-square', label: 'Checklist' },
-    { id: 'target', label: 'Milestone' },
-    { id: 'layers', label: 'Sprint' }
-  ];
-
   $effect(() => {
     if (isOpen) {
       if (list) {
@@ -60,7 +57,7 @@
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      errorMsg = 'List name is required';
+      errorMsg = 'Task list name is required';
       return;
     }
 
@@ -72,7 +69,7 @@
         description: description.trim(),
         color,
         icon,
-        target_date: target_date || null
+        target_date: target_date ? target_date : null
       });
       onClose();
     } catch (err: any) {
@@ -84,150 +81,121 @@
 </script>
 
 {#if isOpen}
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
     <div 
-      class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl overflow-y-auto max-h-[90vh]"
+      class="bg-white/95 backdrop-blur-2xl border border-slate-200/80 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl overflow-y-auto max-h-[90vh]"
       role="dialog"
       aria-modal="true"
     >
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <span 
-            class="w-3.5 h-3.5 rounded-full inline-block shadow-sm"
-            style="background-color: {color};"
-          ></span>
-          {list ? 'Edit Task List' : 'Create New Task List'}
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <Layers class="w-4 h-4" />
+          </div>
+          <span>{list ? 'Edit Task List' : 'Create Task List'}</span>
         </h3>
         <button
           onclick={onClose}
-          class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
           aria-label="Close modal"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X class="w-5 h-5" />
         </button>
       </div>
 
       {#if errorMsg}
-        <div class="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm rounded-xl flex items-center gap-2">
-          <svg class="w-4 h-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          {errorMsg}
+        <div class="mt-4 p-3 bg-rose-50 border border-rose-200/80 text-rose-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+          <AlertCircle class="w-4 h-4 shrink-0 text-rose-500" />
+          <span>{errorMsg}</span>
         </div>
       {/if}
 
-      <form onsubmit={handleSubmit} class="mt-4 space-y-4">
+      <form onsubmit={handleSubmit} class="mt-5 space-y-4">
+        <!-- List Name -->
         <div>
-          <label for="list-name" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            List / Project Name <span class="text-rose-400">*</span>
+          <label for="list-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            List Name <span class="text-rose-500">*</span>
           </label>
           <input
             id="list-name"
             type="text"
             bind:value={name}
-            placeholder="e.g. Sprint Goals, Daily Routine, Exam Prep"
-            class="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
+            placeholder="e.g. Sprint Deliverables, Weekly Goals..."
+            class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs sm:text-sm font-medium transition-all"
             required
           />
         </div>
 
+        <!-- Description -->
         <div>
-          <label for="list-desc" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Description & Purpose
+          <label for="list-desc" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Description
           </label>
           <textarea
             id="list-desc"
             bind:value={description}
             rows="2"
-            placeholder="Describe what tasks are organized inside this list..."
-            class="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
+            placeholder="What is the scope and objective of this task list?"
+            class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs sm:text-sm font-medium transition-all"
           ></textarea>
         </div>
 
+        <!-- Target Deadline Date -->
         <div>
-          <label for="list-target" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Target Completion Deadline (Optional)
+          <label for="list-deadline" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Target Completion Deadline
           </label>
           <input
-            id="list-target"
+            id="list-deadline"
             type="date"
             bind:value={target_date}
-            class="w-full px-3.5 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
+            class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
           />
         </div>
 
+        <!-- Color Marker Palette -->
         <div>
-          <span class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+          <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
             Theme Color
           </span>
-          <div class="flex flex-wrap gap-2 items-center">
-            {#each COLOR_PRESETS as preset}
+          <div class="flex flex-wrap gap-2.5">
+            {#each COLOR_PRESETS as p}
               <button
                 type="button"
-                onclick={() => color = preset.value}
-                class="w-7 h-7 rounded-full transition-transform flex items-center justify-center border-2"
-                style="background-color: {preset.value}; border-color: {color === preset.value ? '#ffffff' : 'transparent'}; transform: {color === preset.value ? 'scale(1.15)' : 'scale(1)'};"
-                title={preset.name}
+                onclick={() => color = p.value}
+                style="background-color: {p.value};"
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-transform active:scale-95 cursor-pointer shadow-xs
+                {color === p.value ? 'ring-2 ring-offset-2 ring-blue-600 scale-110' : 'hover:scale-105'}"
+                title={p.name}
               >
-                {#if color === preset.value}
-                  <svg class="w-3.5 h-3.5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                  </svg>
+                {#if color === p.value}
+                  <Check class="w-4 h-4 stroke-[3]" />
                 {/if}
               </button>
             {/each}
-            <div class="flex items-center gap-1.5 ml-2">
-              <input
-                type="color"
-                bind:value={color}
-                class="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0"
-                title="Custom color"
-              />
-              <span class="text-xs font-mono text-slate-400">{color}</span>
-            </div>
           </div>
         </div>
 
-        <div>
-          <span class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-            List Icon
-          </span>
-          <div class="grid grid-cols-3 gap-2">
-            {#each ICON_PRESETS as iconItem}
-              <button
-                type="button"
-                onclick={() => icon = iconItem.id}
-                class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left
-                {icon === iconItem.id 
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-200 shadow-sm' 
-                  : 'bg-slate-800/50 border-slate-700/60 text-slate-300 hover:bg-slate-800'}"
-              >
-                <span class="w-2 h-2 rounded-full" style="background-color: {color};"></span>
-                <span class="truncate">{iconItem.label}</span>
-              </button>
-            {/each}
-          </div>
-        </div>
-
-        <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
           <button
             type="button"
             onclick={onClose}
-            class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"
+            class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl transition-colors shadow-lg shadow-blue-900/30 flex items-center gap-2"
+            class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs tracking-wide shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             {#if isSubmitting}
-              <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <span>Saving...</span>
+            {:else}
+              <span>{list ? 'Update List' : 'Create List'}</span>
             {/if}
-            {list ? 'Save Changes' : 'Create List'}
           </button>
         </div>
       </form>

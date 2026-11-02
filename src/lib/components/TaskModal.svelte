@@ -1,4 +1,15 @@
 <script lang="ts">
+  import {
+    CheckSquare,
+    X,
+    AlertCircle,
+    Calendar,
+    Tag,
+    Layers,
+    Clock,
+    RefreshCw,
+    CheckCircle2
+  } from '@lucide/svelte';
   import type { Task, Category, TaskList, TaskStatus, TaskPriority } from '../types';
 
   interface Props {
@@ -42,41 +53,38 @@
   let isSubmitting = $state(false);
   let errorMsg = $state('');
 
-  const STATUS_OPTIONS: { id: TaskStatus; label: string; color: string }[] = [
-    { id: 'Pending', label: 'Pending', color: 'bg-slate-700 text-slate-300' },
-    { id: 'In Progress', label: 'In Progress', color: 'bg-blue-600/30 text-blue-300 border border-blue-500/40' },
-    { id: 'Completed', label: 'Completed', color: 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40' },
-    { id: 'Overdue', label: 'Overdue', color: 'bg-rose-600/30 text-rose-300 border border-rose-500/40' }
+  const STATUS_OPTIONS: { id: TaskStatus; label: string }[] = [
+    { id: 'Pending', label: 'Pending' },
+    { id: 'In Progress', label: 'In Progress' },
+    { id: 'Completed', label: 'Completed' },
+    { id: 'Overdue', label: 'Overdue' }
   ];
 
-  const PRIORITY_OPTIONS: { id: TaskPriority; label: string; badge: string }[] = [
-    { id: 'Low', label: 'Low', badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-    { id: 'Medium', label: 'Medium', badge: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
-    { id: 'High', label: 'High', badge: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
-    { id: 'Urgent', label: 'Urgent', badge: 'bg-rose-500/20 text-rose-300 border border-rose-500/40' }
+  const PRIORITY_OPTIONS: { id: TaskPriority; label: string }[] = [
+    { id: 'Low', label: 'Low' },
+    { id: 'Medium', label: 'Medium' },
+    { id: 'High', label: 'High' },
+    { id: 'Urgent', label: 'Urgent' }
   ];
 
   function formatDateTimeLocal(isoString?: string | null): string {
     if (!isoString) return '';
     try {
       const d = new Date(isoString);
-      if (isNaN(d.getTime())) return '';
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${mins}`;
     } catch {
       return '';
     }
   }
 
-  function setDateShortcut(daysOffset: number) {
-    const d = new Date();
-    d.setDate(d.getDate() + daysOffset);
-    d.setHours(18, 0, 0, 0); // default to 6:00 PM
-    due_date = formatDateTimeLocal(d.toISOString());
-  }
-
   $effect(() => {
     if (isOpen) {
+      errorMsg = '';
       if (task) {
         title = task.title;
         description = task.description || '';
@@ -91,15 +99,13 @@
         status = 'Pending';
         priority = 'Medium';
         due_date = '';
-        category_id = defaultCategoryId || (categories.length > 0 ? categories[0].id : null);
-        list_id = defaultListId || (taskLists.length > 0 ? taskLists[0].id : null);
+        category_id = defaultCategoryId || null;
+        list_id = defaultListId || null;
       }
-      errorMsg = '';
-      isSubmitting = false;
     }
   });
 
-  async function handleSubmit(e: SubmitEvent) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     if (!title.trim()) {
       errorMsg = 'Task title is required';
@@ -112,10 +118,7 @@
 
       let formattedIsoDue: string | null = null;
       if (due_date) {
-        const parsed = new Date(due_date);
-        if (!isNaN(parsed.getTime())) {
-          formattedIsoDue = parsed.toISOString();
-        }
+        formattedIsoDue = new Date(due_date).toISOString();
       }
 
       await onSave({
@@ -138,58 +141,54 @@
 </script>
 
 {#if isOpen}
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
     <div 
-      class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]"
+      class="bg-white/95 backdrop-blur-2xl border border-slate-200/80 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]"
       role="dialog"
       aria-modal="true"
     >
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          {task ? 'Edit Task' : 'Create New Task'}
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <CheckSquare class="w-4 h-4" />
+          </div>
+          <span>{task ? 'Edit Task' : 'Create New Task'}</span>
         </h3>
         <button
           onclick={onClose}
-          class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
           aria-label="Close modal"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X class="w-5 h-5" />
         </button>
       </div>
 
       {#if errorMsg}
-        <div class="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm rounded-xl flex items-center gap-2">
-          <svg class="w-4 h-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          {errorMsg}
+        <div class="mt-4 p-3 bg-rose-50 border border-rose-200/80 text-rose-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+          <AlertCircle class="w-4 h-4 shrink-0 text-rose-500" />
+          <span>{errorMsg}</span>
         </div>
       {/if}
 
-      <form onsubmit={handleSubmit} class="mt-4 space-y-4">
+      <form onsubmit={handleSubmit} class="mt-5 space-y-4">
         <!-- Task Title -->
         <div>
-          <label for="task-title" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Task Title <span class="text-rose-400">*</span>
+          <label for="task-title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Task Title <span class="text-rose-500">*</span>
           </label>
           <input
             id="task-title"
             type="text"
             bind:value={title}
             placeholder="e.g. Complete Database Migration for To-Do System"
-            class="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
+            class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs sm:text-sm font-medium transition-all"
             required
           />
         </div>
 
         <!-- Task Description -->
         <div>
-          <label for="task-desc" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label for="task-desc" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
             Description & Notes
           </label>
           <textarea
@@ -197,7 +196,7 @@
             bind:value={description}
             rows="3"
             placeholder="Add detailed task notes, instructions, sub-steps or requirements..."
-            class="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
+            class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs sm:text-sm font-medium transition-all"
           ></textarea>
         </div>
 
@@ -205,18 +204,18 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <!-- Status -->
           <div>
-            <span class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Task Status
+            <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Status
             </span>
             <div class="grid grid-cols-2 gap-1.5">
               {#each STATUS_OPTIONS as opt}
                 <button
                   type="button"
                   onclick={() => status = opt.id}
-                  class="px-2.5 py-2 rounded-xl text-xs font-medium transition-all text-center border
+                  class="px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer
                   {status === opt.id 
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-900/30 font-semibold' 
-                    : 'bg-slate-800/70 border-slate-700/60 text-slate-400 hover:text-slate-200'}"
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}"
                 >
                   {opt.label}
                 </button>
@@ -226,18 +225,18 @@
 
           <!-- Priority -->
           <div>
-            <span class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Priority Level
+            <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Priority
             </span>
             <div class="grid grid-cols-2 gap-1.5">
               {#each PRIORITY_OPTIONS as opt}
                 <button
                   type="button"
                   onclick={() => priority = opt.id}
-                  class="px-2.5 py-2 rounded-xl text-xs font-medium transition-all text-center border
+                  class="px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer
                   {priority === opt.id 
-                    ? 'ring-2 ring-blue-500 font-semibold ' + opt.badge
-                    : 'bg-slate-800/70 border-slate-700/60 text-slate-400 hover:text-slate-200'}"
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}"
                 >
                   {opt.label}
                 </button>
@@ -246,108 +245,78 @@
           </div>
         </div>
 
-        <!-- Task Organization: Category & List Row -->
+        <!-- Due Date -->
+        <div>
+          <label for="task-due" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Deadline / Due Date
+          </label>
+          <div class="relative">
+            <input
+              id="task-due"
+              type="datetime-local"
+              bind:value={due_date}
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Category & List Dropdowns -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- Category -->
+          <!-- Category Selector -->
           <div>
-            <label for="task-category" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+            <label for="task-cat" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Category
             </label>
             <select
-              id="task-category"
+              id="task-cat"
               bind:value={category_id}
-              class="w-full px-3 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 cursor-pointer shadow-2xs"
             >
-              <option value={null}>-- No Category (General) --</option>
-              {#each categories as cat}
+              <option value={null}>Uncategorized</option>
+              {#each categories as cat (cat.id)}
                 <option value={cat.id}>{cat.name}</option>
               {/each}
             </select>
           </div>
 
-          <!-- Task List / Project -->
+          <!-- Task List Selector -->
           <div>
-            <label for="task-list" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+            <label for="task-list" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Task List / Project
             </label>
             <select
               id="task-list"
               bind:value={list_id}
-              class="w-full px-3 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-slate-800 text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 cursor-pointer shadow-2xs"
             >
-              <option value={null}>-- Inbox / General List --</option>
-              {#each taskLists as lst}
-                <option value={lst.id}>{lst.name}</option>
+              <option value={null}>No List (Standalone)</option>
+              {#each taskLists as list (list.id)}
+                <option value={list.id}>{list.name}</option>
               {/each}
             </select>
           </div>
         </div>
 
-        <!-- Due Date and Time -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label for="task-due" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-              Due Date & Time
-            </label>
-            <div class="flex items-center gap-1.5">
-              <button
-                type="button"
-                onclick={() => setDateShortcut(0)}
-                class="text-[11px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-colors"
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onclick={() => setDateShortcut(1)}
-                class="text-[11px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-colors"
-              >
-                Tomorrow
-              </button>
-              <button
-                type="button"
-                onclick={() => setDateShortcut(7)}
-                class="text-[11px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md transition-colors"
-              >
-                +1 Week
-              </button>
-              {#if due_date}
-                <button
-                  type="button"
-                  onclick={() => due_date = ''}
-                  class="text-[11px] px-1.5 py-0.5 text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
-                  title="Clear deadline"
-                >
-                  Clear
-                </button>
-              {/if}
-            </div>
-          </div>
-          <input
-            id="task-due"
-            type="datetime-local"
-            bind:value={due_date}
-            class="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-        </div>
-
-        <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
           <button
             type="button"
             onclick={onClose}
-            class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"
+            class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl transition-colors shadow-lg shadow-blue-900/30 flex items-center gap-2"
+            class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs tracking-wide shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             {#if isSubmitting}
-              <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <span>Saving...</span>
+            {:else}
+              <span>{task ? 'Update Task' : 'Create Task'}</span>
             {/if}
-            {task ? 'Update Task' : 'Create Task'}
           </button>
         </div>
       </form>

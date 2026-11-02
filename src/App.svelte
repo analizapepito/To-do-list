@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import {
+    Menu,
+    CheckSquare,
+    Plus
+  } from '@lucide/svelte';
+  import {
     fetchTasks,
     createTask,
     updateTask,
@@ -20,6 +25,9 @@
   import type { Task, Category, TaskList, TaskStatus, TaskPriority } from './lib/types';
   import { toasts } from './lib/toast';
 
+  import Sidebar from './lib/components/Sidebar.svelte';
+  import RightMetricsRail from './lib/components/RightMetricsRail.svelte';
+
   import Toast from './lib/components/Toast.svelte';
   import ConfirmModal from './lib/components/ConfirmModal.svelte';
   import SchemaModal from './lib/components/SchemaModal.svelte';
@@ -33,8 +41,9 @@
   import CategoriesView from './lib/components/CategoriesView.svelte';
   import ListsView from './lib/components/ListsView.svelte';
 
-  // Navigation State
+  // Navigation & Layout State
   let currentTab = $state<'dashboard' | 'tasks' | 'categories' | 'lists'>('dashboard');
+  let isMobileOpen = $state(false);
 
   // Main Entity State
   let tasks = $state<Task[]>([]);
@@ -148,22 +157,27 @@
     if (updated.status === 'Completed') {
       toasts.success(`Completed: "${updated.title}"`);
     } else {
-      toasts.info(`Reopened: "${updated.title}"`);
+      toasts.info(`Marked ${updated.status}: "${updated.title}"`);
     }
   }
 
   async function handleUpdateTaskStatus(task: Task, newStatus: TaskStatus) {
-    const updated = await updateTask(task.id, { status: newStatus });
+    const updated = await updateTask(task.id, {
+      status: newStatus,
+      completed_at: newStatus === 'Completed' ? new Date().toISOString() : null
+    });
     tasks = tasks.map((t) => (t.id === updated.id ? updated : t));
     toasts.info(`Status updated to "${newStatus}"`);
   }
 
   function handleBatchDeleteCompletedPrompt() {
     const completedCount = tasks.filter((t) => t.status === 'Completed').length;
-    if (completedCount === 0) return;
-
-    confirmTitle = 'Clear Completed Tasks';
-    confirmMessage = `Are you sure you want to remove all ${completedCount} completed task(s)?`;
+    if (completedCount === 0) {
+      toasts.info('No completed tasks to clear.');
+      return;
+    }
+    confirmTitle = 'Clear All Completed Tasks';
+    confirmMessage = `Are you sure you want to delete all ${completedCount} completed tasks?`;
     confirmIsDanger = true;
     confirmAction = async () => {
       await batchDeleteCompletedTasks();
@@ -188,8 +202,8 @@
     isCategoryModalOpen = true;
   }
 
-  function handleEditCategory(cat: Category) {
-    editingCategory = cat;
+  function handleEditCategory(category: Category) {
+    editingCategory = category;
     isCategoryModalOpen = true;
   }
 
@@ -197,7 +211,12 @@
     if (editingCategory) {
       const updated = await updateCategory(editingCategory.id, catData);
       categories = categories.map((c) => (c.id === updated.id ? updated : c));
-      tasks = tasks.map((t) => (t.category_id === updated.id ? { ...t, category: updated } : t));
+      tasks = tasks.map((t) => {
+        if (t.category_id === updated.id) {
+          return { ...t, category: updated };
+        }
+        return t;
+      });
       toasts.success(`Category "${updated.name}" updated`);
     } else {
       const created = await createCategory(catData);
@@ -206,16 +225,23 @@
     }
   }
 
-  function handleDeleteCategoryPrompt(cat: Category) {
+  function handleDeleteCategoryPrompt(category: Category) {
+    const associatedTasksCount = tasks.filter((t) => t.category_id === category.id).length;
     confirmTitle = 'Delete Category';
-    confirmMessage = `Are you sure you want to delete category "${cat.name}"? Tasks assigned to this category will be preserved as Uncategorized.`;
+    confirmMessage = `Are you sure you want to delete category "${category.name}"? ${
+      associatedTasksCount > 0
+        ? `Note: ${associatedTasksCount} tasks in this category will become uncategorized.`
+        : ''
+    }`;
     confirmIsDanger = true;
     confirmAction = async () => {
-      await deleteCategory(cat.id);
-      categories = categories.filter((c) => c.id !== cat.id);
-      tasks = tasks.map((t) => (t.category_id === cat.id ? { ...t, category_id: null, category: undefined } : t));
-      if (selectedCategoryFilter === cat.id) selectedCategoryFilter = null;
-      toasts.success(`Category "${cat.name}" removed`);
+      await deleteCategory(category.id);
+      categories = categories.filter((c) => c.id !== category.id);
+      tasks = tasks.map((t) => (t.category_id === category.id ? { ...t, category_id: null, category: undefined } : t));
+      if (selectedCategoryFilter === category.id) {
+        selectedCategoryFilter = null;
+      }
+      toasts.success(`Category "${category.name}" deleted`);
       isConfirmModalOpen = false;
     };
     isConfirmModalOpen = true;
@@ -240,29 +266,47 @@
     isListModalOpen = true;
   }
 
-  async function handleSaveList(listData: { name: string; description: string; color: string; icon: string; target_date?: string | null }) {
+  async function handleSaveList(listData: {
+    name: string;
+    description: string;
+    color: string;
+    icon: string;
+    target_date?: string | null;
+  }) {
     if (editingList) {
       const updated = await updateTaskList(editingList.id, listData);
       taskLists = taskLists.map((l) => (l.id === updated.id ? updated : l));
-      tasks = tasks.map((t) => (t.list_id === updated.id ? { ...t, task_list: updated } : t));
-      toasts.success(`Task list "${updated.name}" updated`);
+      tasks = tasks.map((t) => {
+        if (t.list_id === updated.id) {
+          return { ...t, task_list: updated };
+        }
+        return t;
+      });
+      toasts.success(`Task List "${updated.name}" updated`);
     } else {
       const created = await createTaskList(listData);
-      taskLists = [created, ...taskLists];
-      toasts.success(`Task list "${created.name}" created`);
+      taskLists = [...taskLists, created];
+      toasts.success(`Task List "${created.name}" created`);
     }
   }
 
   function handleDeleteListPrompt(list: TaskList) {
+    const listTasksCount = tasks.filter((t) => t.list_id === list.id).length;
     confirmTitle = 'Delete Task List';
-    confirmMessage = `Are you sure you want to delete "${list.name}"? All associated tasks inside this list will also be removed.`;
+    confirmMessage = `Are you sure you want to delete list "${list.name}"? ${
+      listTasksCount > 0
+        ? `Warning: ${listTasksCount} associated tasks will also be removed (Cascade Delete).`
+        : ''
+    }`;
     confirmIsDanger = true;
     confirmAction = async () => {
       await deleteTaskList(list.id);
       taskLists = taskLists.filter((l) => l.id !== list.id);
       tasks = tasks.filter((t) => t.list_id !== list.id);
-      if (selectedListFilter === list.id) selectedListFilter = null;
-      toasts.success(`Task list "${list.name}" and associated tasks deleted`);
+      if (selectedListFilter === list.id) {
+        selectedListFilter = null;
+      }
+      toasts.success(`Task List "${list.name}" deleted`);
       isConfirmModalOpen = false;
     };
     isConfirmModalOpen = true;
@@ -276,241 +320,142 @@
   function handleOpenNewTaskForList(listId: string) {
     openNewTaskModal({ listId });
   }
-
-  // Derived counts for navigation pills
-  let pendingCount = $derived(tasks.filter((t) => t.status === 'Pending' || t.status === 'In Progress').length);
-  let overdueCount = $derived(tasks.filter((t) => t.status === 'Overdue').length);
 </script>
 
-<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-  <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-40 bg-slate-900/90 border-b border-slate-800 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16 gap-4">
-        <!-- Logo & Title -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <rect width="18" height="18" x="3" y="3" rx="2" stroke-width="2"/>
-              <path d="m9 12 2 2 4-4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+<div class="min-h-screen bg-slate-50/70 text-slate-800 flex relative selection:bg-blue-600 selection:text-white">
+  <!-- Subtle Ambient Glass Backdrops -->
+  <div class="fixed -top-40 -left-40 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="fixed top-1/3 -right-20 w-80 h-80 bg-indigo-100/40 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="fixed -bottom-40 left-1/3 w-96 h-96 bg-sky-100/35 rounded-full blur-3xl pointer-events-none"></div>
+
+  <!-- 1. LEFT SIDE NAVIGATION -->
+  <Sidebar
+    {currentTab}
+    tasksCount={tasks.length}
+    categoriesCount={categories.length}
+    listsCount={taskLists.length}
+    {isConfigured}
+    {isMobileOpen}
+    onSelectTab={(tab) => currentTab = tab}
+    onOpenNewTask={() => openNewTaskModal()}
+    onOpenSchema={() => isSchemaModalOpen = true}
+    onCloseMobile={() => isMobileOpen = false}
+  />
+
+  <!-- 2. CENTER WORKSPACE (Breathable & Clean) -->
+  <div class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+    <!-- Mobile Top Navigation Header -->
+    <header class="lg:hidden sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-200/80 px-4 py-3 flex items-center justify-between shadow-2xs">
+      <div class="flex items-center gap-2.5">
+        <button
+          onclick={() => isMobileOpen = true}
+          class="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 shadow-2xs"
+          aria-label="Open menu"
+        >
+          <Menu class="w-5 h-5" />
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+            <CheckSquare class="w-4 h-4" />
           </div>
-          <div>
-            <div class="text-sm font-black tracking-tight text-white flex items-center gap-2">
-              <span>TO-DO LIST MANAGEMENT SYSTEM</span>
-              <span class="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                Individual Project
-              </span>
-            </div>
-            <div class="text-[11px] text-slate-400 flex items-center gap-2">
-              <span class="font-medium text-slate-300">Svelte</span>
-              <span>&bull;</span>
-              <span class="font-medium text-slate-300">Supabase</span>
-              <span>&bull;</span>
-              <span class="font-medium text-slate-300">PostgreSQL</span>
-              <span>&bull;</span>
-              <span class="font-medium text-slate-300">Vercel</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Navigation Tabs -->
-        <nav class="hidden md:flex items-center gap-1">
-          <button
-            onclick={() => currentTab = 'dashboard'}
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer
-            {currentTab === 'dashboard' ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Dashboard
-          </button>
-
-          <button
-            onclick={() => currentTab = 'tasks'}
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer
-            {currentTab === 'tasks' ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Tasks
-            {#if overdueCount > 0}
-              <span class="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono animate-pulse">
-                {overdueCount}
-              </span>
-            {:else if pendingCount > 0}
-              <span class="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono">
-                {pendingCount}
-              </span>
-            {/if}
-          </button>
-
-          <button
-            onclick={() => currentTab = 'categories'}
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer
-            {currentTab === 'categories' ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            Categories
-            <span class="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 text-[10px] font-mono">
-              {categories.length}
-            </span>
-          </button>
-
-          <button
-            onclick={() => currentTab = 'lists'}
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer
-            {currentTab === 'lists' ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            Task Lists
-            <span class="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 text-[10px] font-mono">
-              {taskLists.length}
-            </span>
-          </button>
-        </nav>
-
-        <!-- Right Side: DB Schema & Status -->
-        <div class="flex items-center gap-2.5">
-          <button
-            onclick={() => isSchemaModalOpen = true}
-            class="px-3 py-1.5 rounded-xl border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-            title="Inspect Database Schema and Supabase Backend"
-          >
-            <span class="w-2 h-2 rounded-full {isConfigured ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
-            <span class="hidden sm:inline">Database & Architecture</span>
-            <span class="sm:hidden">DB</span>
-          </button>
-
-          <button
-            onclick={() => openNewTaskModal()}
-            class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-900/30 flex items-center gap-1.5 cursor-pointer"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-            </svg>
-            <span class="hidden sm:inline">Add Task</span>
-          </button>
+          <span class="font-extrabold text-sm text-slate-900">To-Do System</span>
         </div>
       </div>
 
-      <!-- Mobile Tab Bar -->
-      <div class="flex md:hidden items-center justify-around py-2 border-t border-slate-800/80 text-xs font-semibold">
-        <button
-          onclick={() => currentTab = 'dashboard'}
-          class="px-2.5 py-1 rounded-lg transition-colors {currentTab === 'dashboard' ? 'text-blue-400 font-bold' : 'text-slate-400'}"
-        >
-          Dashboard
-        </button>
-        <button
-          onclick={() => currentTab = 'tasks'}
-          class="px-2.5 py-1 rounded-lg transition-colors {currentTab === 'tasks' ? 'text-blue-400 font-bold' : 'text-slate-400'}"
-        >
-          Tasks ({tasks.length})
-        </button>
-        <button
-          onclick={() => currentTab = 'categories'}
-          class="px-2.5 py-1 rounded-lg transition-colors {currentTab === 'categories' ? 'text-blue-400 font-bold' : 'text-slate-400'}"
-        >
-          Categories ({categories.length})
-        </button>
-        <button
-          onclick={() => currentTab = 'lists'}
-          class="px-2.5 py-1 rounded-lg transition-colors {currentTab === 'lists' ? 'text-blue-400 font-bold' : 'text-slate-400'}"
-        >
-          Lists ({taskLists.length})
-        </button>
-      </div>
-    </div>
-  </header>
+      <button
+        onclick={() => openNewTaskModal()}
+        class="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+      >
+        <Plus class="w-3.5 h-3.5" />
+        <span>Add Task</span>
+      </button>
+    </header>
 
-  <!-- Main Content Area -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {#if isLoading}
-      <div class="flex flex-col items-center justify-center py-24 gap-3">
-        <div class="w-8 h-8 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-        <p class="text-xs text-slate-400 font-medium">Loading To-Do System data...</p>
-      </div>
-    {:else}
-      {#if currentTab === 'dashboard'}
-        <DashboardView
-          {tasks}
-          {categories}
-          {taskLists}
-          onNavigate={(tab) => currentTab = tab}
-          onFilterList={(listId) => {
-            selectedListFilter = listId;
-            currentTab = 'tasks';
-          }}
-          onFilterCategory={(catId) => {
-            selectedCategoryFilter = catId;
-            currentTab = 'tasks';
-          }}
-          onOpenNewTaskModal={() => openNewTaskModal()}
-          onSelectTask={handleSelectTask}
-          onToggleTaskStatus={handleToggleTaskStatus}
-        />
-      {:else if currentTab === 'tasks'}
-        <TasksView
-          {tasks}
-          {categories}
-          {taskLists}
-          bind:selectedCategoryFilter
-          bind:selectedListFilter
-          onOpenNewTaskModal={openNewTaskModal}
-          onEditTask={handleEditTask}
-          onDeleteTask={handleDeleteTaskPrompt}
-          onToggleTaskStatus={handleToggleTaskStatus}
-          onUpdateTaskStatus={handleUpdateTaskStatus}
-          onBatchDeleteCompleted={handleBatchDeleteCompletedPrompt}
-          onSelectTask={handleSelectTask}
-        />
-      {:else if currentTab === 'categories'}
-        <CategoriesView
-          {categories}
-          {tasks}
-          onOpenNewCategoryModal={openNewCategoryModal}
-          onEditCategory={handleEditCategory}
-          onDeleteCategory={handleDeleteCategoryPrompt}
-          onViewCategoryTasks={handleViewCategoryTasks}
-        />
-      {:else if currentTab === 'lists'}
-        <ListsView
-          {taskLists}
-          {tasks}
-          onOpenNewListModal={openNewListModal}
-          onEditList={handleEditList}
-          onDeleteList={handleDeleteListPrompt}
-          onViewListTasks={handleViewListTasks}
-          onOpenNewTaskForList={handleOpenNewTaskForList}
-        />
+    <!-- Main Views Container -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto">
+      {#if isLoading}
+        <div class="flex flex-col items-center justify-center py-24 gap-3">
+          <div class="w-8 h-8 border-3 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+          <p class="text-xs text-slate-500 font-medium">Loading To-Do System data...</p>
+        </div>
+      {:else}
+        {#if currentTab === 'dashboard'}
+          <DashboardView
+            {tasks}
+            {categories}
+            {taskLists}
+            onNavigate={(tab) => currentTab = tab}
+            onFilterList={handleViewListTasks}
+            onFilterCategory={handleViewCategoryTasks}
+            onOpenNewTaskModal={openNewTaskModal}
+            onSelectTask={handleSelectTask}
+            onToggleTaskStatus={handleToggleTaskStatus}
+          />
+        {:else if currentTab === 'tasks'}
+          <TasksView
+            {tasks}
+            {categories}
+            {taskLists}
+            bind:selectedCategoryFilter
+            bind:selectedListFilter
+            onOpenNewTaskModal={openNewTaskModal}
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTaskPrompt}
+            onToggleTaskStatus={handleToggleTaskStatus}
+            onUpdateTaskStatus={handleUpdateTaskStatus}
+            onBatchDeleteCompleted={handleBatchDeleteCompletedPrompt}
+            onSelectTask={handleSelectTask}
+          />
+        {:else if currentTab === 'categories'}
+          <CategoriesView
+            {categories}
+            {tasks}
+            onOpenNewCategoryModal={openNewCategoryModal}
+            onEditCategory={handleEditCategory}
+            onDeleteCategory={handleDeleteCategoryPrompt}
+            onViewCategoryTasks={handleViewCategoryTasks}
+          />
+        {:else if currentTab === 'lists'}
+          <ListsView
+            {taskLists}
+            {tasks}
+            onOpenNewListModal={openNewListModal}
+            onEditList={handleEditList}
+            onDeleteList={handleDeleteListPrompt}
+            onViewListTasks={handleViewListTasks}
+            onOpenNewTaskForList={handleOpenNewTaskForList}
+          />
+        {/if}
       {/if}
-    {/if}
-  </main>
+    </main>
 
-  <!-- Footer -->
-  <footer class="mt-auto border-t border-slate-900 bg-slate-950/80 py-6 text-xs text-slate-500">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <div>
-        <strong class="text-slate-400">TO-DO LIST MANAGEMENT SYSTEM</strong> &bull; Individual Project
+    <!-- Clean Breathable Footer -->
+    <footer class="mt-auto border-t border-slate-200/70 bg-white/50 py-5 text-xs text-slate-500">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div>
+          <strong class="text-slate-700">TO-DO LIST MANAGEMENT SYSTEM</strong> &bull; Individual Project
+        </div>
+        <div class="flex items-center gap-3 text-[11px] font-semibold text-slate-400">
+          <span>Svelte 5</span>
+          <span>&bull;</span>
+          <span>Supabase</span>
+          <span>&bull;</span>
+          <span>PostgreSQL</span>
+          <span>&bull;</span>
+          <span>Vercel</span>
+        </div>
       </div>
-      <div class="flex items-center gap-4">
-        <span>Svelte Frontend</span>
-        <span>&bull;</span>
-        <span>Supabase Backend</span>
-        <span>&bull;</span>
-        <span>PostgreSQL</span>
-        <span>&bull;</span>
-        <span>Vercel Edge Ready</span>
-      </div>
-    </div>
-  </footer>
+    </footer>
+  </div>
+
+  <!-- 3. RIGHT SIDE ORGANIZED METRICS RAIL -->
+  <RightMetricsRail
+    {tasks}
+    {categories}
+    {taskLists}
+    onFilterList={handleViewListTasks}
+    onFilterCategory={handleViewCategoryTasks}
+  />
 
   <!-- Modals -->
   <TaskModal

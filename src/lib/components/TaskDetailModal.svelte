@@ -1,5 +1,20 @@
 <script lang="ts">
+  import {
+    CheckSquare,
+    X,
+    Edit3,
+    Trash2,
+    Check,
+    Calendar,
+    Clock,
+    Layers,
+    Tag,
+    AlertCircle,
+    CheckCircle2,
+    RefreshCw
+  } from '@lucide/svelte';
   import type { Task } from '../types';
+  import CategoryIcon from './CategoryIcon.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -30,8 +45,8 @@
   }
 
   function getDueStatusText(isoString?: string | null, status?: string) {
-    if (status === 'Completed') return { text: 'Completed', color: 'text-emerald-400' };
-    if (!isoString) return { text: 'No due date', color: 'text-slate-400' };
+    if (status === 'Completed') return { text: 'Completed', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+    if (!isoString) return { text: 'No due date', color: 'text-slate-600 bg-slate-100 border-slate-200' };
 
     const dueTime = new Date(isoString).getTime();
     const now = Date.now();
@@ -41,179 +56,141 @@
       const daysOverdue = Math.ceil(Math.abs(diffHours) / 24);
       return {
         text: `Overdue by ${daysOverdue} day${daysOverdue > 1 ? 's' : ''}`,
-        color: 'text-rose-400 font-bold'
+        color: 'text-rose-700 bg-rose-50 border-rose-200 font-bold'
       };
     } else if (diffHours < 24) {
       return {
         text: `Due in ${Math.round(diffHours)} hours`,
-        color: 'text-amber-400 font-medium'
+        color: 'text-amber-700 bg-amber-50 border-amber-200 font-medium'
       };
     } else {
       const days = Math.round(diffHours / 24);
       return {
         text: `Due in ${days} day${days > 1 ? 's' : ''}`,
-        color: 'text-slate-300'
+        color: 'text-slate-700 bg-slate-100 border-slate-200'
       };
     }
   }
 </script>
 
 {#if isOpen && task}
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+  {@const dueInfo = getDueStatusText(task.due_date, task.status)}
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
     <div 
-      class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]"
+      class="bg-white/95 backdrop-blur-2xl border border-slate-200/80 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh] space-y-6"
       role="dialog"
       aria-modal="true"
     >
-      <!-- Header with Status & Priority -->
-      <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-800">
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Status Badge -->
-          <span class="px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider
-            {task.status === 'Completed' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : ''}
-            {task.status === 'In Progress' ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30' : ''}
-            {task.status === 'Pending' ? 'bg-slate-800 text-slate-300 border border-slate-700' : ''}
-            {task.status === 'Overdue' ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30' : ''}"
-          >
-            {task.status}
-          </span>
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Status Badge -->
+            <span class="px-2.5 py-1 rounded-lg text-xs font-bold border {task.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : task.status === 'Overdue' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
+              {task.status}
+            </span>
 
-          <!-- Priority Badge -->
-          <span class="px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider
-            {task.priority === 'Urgent' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : ''}
-            {task.priority === 'High' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : ''}
-            {task.priority === 'Medium' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : ''}
-            {task.priority === 'Low' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : ''}"
-          >
-            {task.priority} Priority
-          </span>
+            <!-- Priority Badge -->
+            <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase border {task.priority === 'Urgent' ? 'bg-red-50 text-red-700 border-red-200' : task.priority === 'High' ? 'bg-orange-50 text-orange-700 border-orange-200' : task.priority === 'Medium' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200'}">
+              {task.priority} Priority
+            </span>
+          </div>
+
+          <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 pt-1 {task.status === 'Completed' ? 'line-through text-slate-400' : ''}">
+            {task.title}
+          </h3>
         </div>
 
         <button
           onclick={onClose}
-          class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           aria-label="Close modal"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X class="w-5 h-5" />
         </button>
       </div>
 
-      <!-- Task Title -->
-      <div class="mt-4">
-        <h2 class="text-xl font-bold text-white leading-snug {task.status === 'Completed' ? 'line-through text-slate-400' : ''}">
-          {task.title}
-        </h2>
-      </div>
-
-      <!-- Meta Info Row: Category & List -->
-      <div class="mt-4 flex flex-wrap gap-2.5">
-        {#if task.category}
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs text-slate-200">
-            <span class="w-2.5 h-2.5 rounded-full" style="background-color: {task.category.color};"></span>
-            <span>Category: <strong>{task.category.name}</strong></span>
-          </div>
-        {:else}
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/40 border border-slate-700/40 text-xs text-slate-400">
-            <span>Category: Unassigned</span>
-          </div>
-        {/if}
-
-        {#if task.task_list}
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs text-slate-200">
-            <span class="w-2.5 h-2.5 rounded-full" style="background-color: {task.task_list.color};"></span>
-            <span>List: <strong>{task.task_list.name}</strong></span>
-          </div>
-        {:else}
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/40 border border-slate-700/40 text-xs text-slate-400">
-            <span>List: General Inbox</span>
-          </div>
-        {/if}
-      </div>
-
-      <!-- Due Date Section -->
-      <div class="mt-4 p-3.5 bg-slate-800/50 border border-slate-700/50 rounded-xl flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <div>
-            <div class="text-xs text-slate-400">Due Deadline</div>
-            <div class="text-sm font-semibold text-slate-200">{formatFullDate(task.due_date)}</div>
-          </div>
-        </div>
-        {#if task.due_date}
-          {@const dueInfo = getDueStatusText(task.due_date, task.status)}
-          <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 {dueInfo.color}">
-            {dueInfo.text}
-          </span>
-        {/if}
-      </div>
-
-      <!-- Description / Notes -->
-      <div class="mt-4">
-        <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Description & Notes</h4>
-        <div class="p-4 bg-slate-950/60 border border-slate-800/80 rounded-xl text-sm text-slate-300 leading-relaxed whitespace-pre-wrap min-h-[70px]">
+      <!-- Description Body -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Description & Notes</h4>
+        <div class="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/60 text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
           {task.description || 'No description provided for this task.'}
         </div>
       </div>
 
-      <!-- Timestamps -->
-      <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 gap-1.5">
-        <div>Created: {formatFullDate(task.created_at)}</div>
-        {#if task.completed_at}
-          <div class="text-emerald-400/80">Completed: {formatFullDate(task.completed_at)}</div>
-        {/if}
+      <!-- Metadata Bento Grid -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Category -->
+        <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs space-y-1">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <Tag class="w-3.5 h-3.5" />
+            <span>Category</span>
+          </div>
+          {#if task.category}
+            <div class="flex items-center gap-2 pt-0.5">
+              <span class="w-2.5 h-2.5 rounded-full" style="background-color: {task.category.color};"></span>
+              <span class="text-xs font-bold text-slate-800">{task.category.name}</span>
+            </div>
+          {:else}
+            <p class="text-xs text-slate-500 font-medium">Uncategorized</p>
+          {/if}
+        </div>
+
+        <!-- Task List -->
+        <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs space-y-1">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <Layers class="w-3.5 h-3.5" />
+            <span>Task List</span>
+          </div>
+          {#if task.task_list}
+            <p class="text-xs font-bold text-slate-800 truncate pt-0.5">{task.task_list.name}</p>
+          {:else}
+            <p class="text-xs text-slate-500 font-medium">No List Assigned</p>
+          {/if}
+        </div>
+
+        <!-- Due Date -->
+        <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs space-y-1 col-span-2">
+          <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <div class="flex items-center gap-1.5">
+              <Calendar class="w-3.5 h-3.5" />
+              <span>Deadline</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {dueInfo.color}">
+              {dueInfo.text}
+            </span>
+          </div>
+          <p class="text-xs font-bold text-slate-800 pt-0.5">
+            {formatFullDate(task.due_date)}
+          </p>
+        </div>
       </div>
 
-      <!-- Actions Footer -->
-      <div class="mt-6 flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-4 border-t border-slate-100">
         <button
-          onclick={() => {
-            onToggleStatus(task);
-            onClose();
-          }}
-          class="px-4 py-2 text-xs font-semibold rounded-xl border transition-colors flex items-center gap-2
-          {task.status === 'Completed' 
-            ? 'bg-amber-600/20 border-amber-500/40 text-amber-300 hover:bg-amber-600/30' 
-            : 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30'}"
+          onclick={() => onDelete(task)}
+          class="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/60 transition-colors flex items-center gap-1.5 cursor-pointer"
         >
-          {#if task.status === 'Completed'}
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Mark as Pending
-          {:else}
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Mark as Completed
-          {/if}
+          <Trash2 class="w-4 h-4" />
+          <span>Delete</span>
         </button>
 
         <div class="flex items-center gap-2">
           <button
-            onclick={() => {
-              onDelete(task);
-              onClose();
-            }}
-            class="px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-colors"
-            title="Delete task"
+            onclick={() => onToggleStatus(task)}
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-colors border flex items-center gap-1.5 cursor-pointer {task.status === 'Completed' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-emerald-600 text-white border-emerald-600 shadow-sm'}"
           >
-            Delete
+            <Check class="w-4 h-4 stroke-[2.5]" />
+            <span>{task.status === 'Completed' ? 'Mark Incomplete' : 'Complete Task'}</span>
           </button>
+
           <button
-            onclick={() => {
-              onEdit(task);
-              onClose();
-            }}
-            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors shadow-md shadow-blue-900/30 flex items-center gap-1.5"
+            onclick={() => onEdit(task)}
+            class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Edit Task
+            <Edit3 class="w-4 h-4" />
+            <span>Edit</span>
           </button>
         </div>
       </div>
